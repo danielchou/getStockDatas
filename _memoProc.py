@@ -13,17 +13,27 @@ import _beowSet as bs          #自己寫的
 
 data = Data()
 price = pd.read_pickle("history/tables/bargin_report.pkl")
+# sCode = pd.read_pickle("history/items/monthly_report/當月營收.pkl")
+# print(sCode)
+
 pp = price.tail(1)
 pp = pp.index.levels[0]
-df = data.get("收盤價")
 
+# p2 = pp.str.split()
+# print(p2)
+# pp["xx"] = p2[0]
+
+# print(pp)
 
 def getStockName(n):
+    # print(type(pp), type(n))
     for p in pp:
-        if n in p:
+        if n in p and len(p.split(" ")[0])==4 :
             arr = p.split(" ")
-            return arr[1]
+            return arr[1] 
 
+
+df = data.get("收盤價")
 
 #判斷是否禮拜天? 如果是自動跳到上周五....但有國定假日就不行了。
 def whatIsToday(diff_days, iYesterday):
@@ -92,7 +102,7 @@ def diffRatio(w1,m1,q1,y1 ,wd,md,qd,yd, wr,mr,qr,yr):
     for k in dic2.keys():
         wmqy_dscr2 += k + ","
     
-    return wmqy_dscr, wmqy_dscr2
+    return wmqy_dscr2
 
 
 def isFlatMA(today, yesterday, stockId, close):
@@ -122,9 +132,9 @@ def isFlatMA(today, yesterday, stockId, close):
     yv, yd, yr = getMA_infor(today, yesterday, ma240r,240)
     
     if(math.isnan(mv)):
-        dscr, dscr2 = "序列不連續無法計算","?","?","?"
+        dscr2 = "序列不連續無法計算","?","?","?"
     else:
-        dscr, dscr2 = diffRatio(wv,mv,qv,yv,    wd,md,qd,yd,    wr,mr,qr,yr)
+        dscr2 = diffRatio(wv,mv,qv,yv,    wd,md,qd,yd,    wr,mr,qr,yr)
         # print(diffRatio(wv,mv,qv,yv,    wd,md,qd,yd,    wr,mr,qr,yr))
     
     return wv, ev, fv, mv, qv, yv, dscr2 
@@ -274,6 +284,8 @@ def checkSimpleInfo(today,yesterday,datediff,stockId):
     v = 1 if( math.isnan(v) == True ) else int(v/1000)  #張數  
     kbar = "紅K" if(c>o) else "綠K"
     
+    yc = 'null' if(math.isnan(yc)) else yc
+
     return kbar, o, yc, c, h, l, v
 
 def talib2df(talib_output, ma1):
@@ -303,7 +315,7 @@ def isCoverMA(today, yesterday,datediff, stockId):
     # print(kd[pd.to_datetime(today, format='%Y%m%d', errors='ignore')])
 
     c = close[today]                       #今天收盤價
-    o= data.get("開盤價")[stockId][today]   #今日開盤價
+    o = data.get("開盤價")[stockId][today]   #今日開盤價
     h = high[today]                        #今日最高價
     l = low[today]                         #今日最低價
 
@@ -326,6 +338,7 @@ def isCoverMA(today, yesterday,datediff, stockId):
     bar = "紅K" if(c>o) else "綠K"
     amplitude = round((h-l)/c * 100,2)    
     iGap = round(l - yh ,2) #描述跳空缺口
+    iGap = 'null' if(math.isnan(iGap)) else iGap
     
     #計算扣抵值
     ddu5 = close[-5 :].head(1).values[0]
@@ -354,21 +367,28 @@ def getStockVolumns(stockId, i):
     i = i * -1    
     j = i - 1
     sql = ""
+    errBags=[]
     
     try:
         pp = price.loc[nn][-1:] if (i==0) else price.loc[nn][j:i]
-#         print(pp)
-        
-        dealer = int(int( pp["自營商買賣超股數(自行買賣)"] )/1000)
-        dealer2 = int(int( "0" if (math.isnan( pp["自營商買賣超股數(避險)"])) else pp["自營商買賣超股數(避險)"]  )/1000)
-        ic     = int(int( pp["投信買賣超股數"])/1000)
-        fc     = int(int( pp["外陸資買賣超股數(不含外資自營商)"])/1000)
-        
-        dt     = pp.index[0].strftime("%Y-%m-%d")
-        sql = "insert into volumn(stockId,closeDate,fc,ic,dealer) values ('{0}','{1}',{2},{3},{4}); "
-        sql = sql.format(stockId, dt, fc, ic, dealer + dealer2)
+        dealer = pp["自營商買賣超股數(自行買賣)"] 
+        dealer = int(int( 0 if (math.isnan(dealer)) else dealer)/1000)
+        dealer2 = pp["自營商買賣超股數(避險)"]
+        dealer21 = pp["自營商買賣超股數(避險)"]
+        dealer21 = 0 if(math.isnan(dealer21)) else dealer21
+        dealer2 = 0 if (math.isnan(dealer2)) else dealer21  
+        dealer2 = int(int(  dealer2 )/1000)
+        dealer += dealer2
+        ic = pp["投信買賣超股數"]
+        ic = 0 if(math.isnan(ic)) else ic
+        ic = int(int( ic )/1000)
+        fc = pp["外陸資買賣超股數(不含外資自營商)"]
+        fc = 0 if(math.isnan(fc)) else fc
+        fc = int(int(fc)/1000)
+
+        dt = pp.index[0].strftime("%Y-%m-%d")
+        sql = f"insert into volumn(stockId,closeDate,fc,ic,dealer) values ('{stockId}','{dt}',{fc},{ic},{dealer});" # Python 語法解析器把 f-string
         return sql
-        
      
     except Exception as e:
         error_class = e.__class__.__name__            #取得錯誤類型
@@ -376,12 +396,14 @@ def getStockVolumns(stockId, i):
         cl, exc, tb = sys.exc_info()                  #取得Call Stack
         lastCallStack = traceback.extract_tb(tb)[-1]  #取得Call Stack的最後一筆資料
         fileName , lineNum, funcName = lastCallStack[0], lastCallStack[1], lastCallStack[2]  #取得發生的檔案名稱、取得發生的行號、取得發生的函數名稱
-        errMsg = "/* File \"{}\", line {}, in {}: [{}] {}  */".format(fileName, lineNum, funcName, error_class, detail)
-        print(stockId, errMsg, sql) 
-        return "/* Error "+ stockId + "-" + getStockName(stockId) +"*/"
+        errMsg = f"/* File \"{fileName}\", line {lineNum}, in {funcName}: [{error_class}] {detail}  */"
+        errBags.append(stockId)
+        # print(stockId, errMsg, sql) 
+        return f"/* Error {stockId} - {sql} */"
     except:
         print("/* 三大法人非預期的錯誤", sys.exc_info()[0], "*/")
 
+    print("有問題的股票待號:", errBags)
         
 
 
@@ -395,7 +417,7 @@ import time
 
 def findTrendStock(today, yesterday, datediff):
     i=1
-    stockName, errMsg, sql ="","",""
+    stockName, errMsg, sql, sql2 ="","","",""
 
     for stockId in stockIds:
         
@@ -409,17 +431,12 @@ def findTrendStock(today, yesterday, datediff):
                     kbar, ma5, ma7, ma10, ma20, ma60, ma240, iGap, amplitude, ma_dscr2, ddu5, ddu10, ddu20, ddu60, ddu240, k,d = isCoverMA(today, yesterday, datediff, stockId)
 
                     i+=1
-                    stockName = getStockName(stockId)
-                    print (i, stockId, stockName, Fore.RED if(kbar=="紅K") else Fore.GREEN , close, "數量",k,d, Fore.YELLOW,  Style.RESET_ALL)                        
-                    sql = """insert into StockParas (stockId, closeDate, v, o, c, h, l, yc,
-                            ma5, ma7, ma10, ma20, ma60, ma240,
-                            amplitude, ma_dscr, iGap, 
-                            ddu5, ddu10, ddu20, ddu60, ddu240, k, d ) values (
-                            '{0}', '{1}', {2}, {3}, {4}, {5}, {6}, {7},{8}, {9}, {10}, {11}, {12}, {13},
-                            N'{14}', N'{15}', {16}, {17}, {18}, {19}, {20}, {21}, {22}, {23});"""; 
-                    sql = sql.format(stockId, today, volumn, o, close, high, low, yc, ma5, ma7, ma10, ma20, ma60, ma240, amplitude, ma_dscr2, iGap, ddu5, ddu10, ddu20, ddu60, ddu240, k, d,)    
+                    # stockName = getStockName(stockId)
+                    print (i, stockId, Fore.RED if(kbar=="紅K") else Fore.GREEN , close, "數量",k,d, Fore.YELLOW,  Style.RESET_ALL)                        
+                    sql = f"""insert into dbo.StockParas (stockId, closeDate, v, o, c, h, l, yc,iGap,amplitude,k,d) values ('{stockId}','{today}',{volumn},{o},{close},{high},{low},{yc},{iGap},{amplitude},{k},{d});"""    
+                    sql2 = f"""insert into dbo.stockMA (stockId,closeDate,ma_dscr ,ma5,ma7,ma10,ma20,ma60,ma240, ddu5,ddu10,ddu20,ddu60,ddu240) values ('{stockId}','{today}',N'{ma_dscr2}',{ma5},{ma7},{ma10},{ma20},{ma60},{ma240},{ddu5},{ddu10},{ddu20},{ddu60},{ddu240});"""
                     # print(sql)
-                    bs.ExecuteMSSQL(sql)      #同時寫入兩個指令
+                    bs.ExecuteMSSQL(sql+sql2)      #同時寫入兩個指令
 
                     # sql = """update stockparas set ma7={0},ma10={1} where closeDate='{2}' and stockId='{3}';"""
                     # sql = sql.format(ma7,ma10,today,stockId)
@@ -463,67 +480,61 @@ def get_all_max_month_income():
             try:
                 lastMaxDt, lastMaxV, nowDate, nowRvn, isHistMax = findMonthInCome(stockId)
                 stockName = getStockName(stockId)
-                
-                
-                (stockId)
 
                 if(isHistMax== True ):
                     i += 1
                     print(i, stockId, stockName, lastMaxDt, lastMaxV, nowDate, nowRvn, isHistMax)
 
-                    sql = """
+                    sql = f"""
                     declare @isExist as int;
-                    select @isExist = count(*) from maxMMRevenue where stockId={0} and nowDate='{2}';
+                    select @isExist = count(*) from maxMMRevenue where stockId={stockId} and nowDate='{nowDate}';
 
                     if @isExist = 0
                     begin
                         insert into maxMMRevenue (stockId,stockName,nowDate,nowRvn,lastMaxDate,lastMaxRvn,createdDate) 
-                                                values ('{0}',N'{1}','{2}',{3},'{4}',{5},getdate());  
+                                values ('{stockId}',N'{stockName}','{nowDate}',{nowRvn},'{lastMaxDt}',{lastMaxV},getdate());  
                     end
                     """
-                    sql = sql.format(stockId, stockName, nowDate, nowRvn, lastMaxDt, lastMaxV )
                     bs.InsertIntoMSSQL2017(sql)                
             except Exception as e:
-                    error_class = e.__class__.__name__ #取得錯誤類型
-                    detail = e.args[0] #取得詳細內容
-                    cl, exc, tb = sys.exc_info() #取得Call Stack
-                    lastCallStack = traceback.extract_tb(tb)[-1] #取得Call Stack的最後一筆資料
+                    error_class = e.__class__.__name__              #取得錯誤類型
+                    detail = e.args[0]                              #取得詳細內容
+                    cl, exc, tb = sys.exc_info()                    #取得Call Stack
+                    lastCallStack = traceback.extract_tb(tb)[-1]    #取得Call Stack的最後一筆資料
                     fileName , lineNum, funcName = lastCallStack[0], lastCallStack[1], lastCallStack[2]  #取得發生的檔案名稱、取得發生的行號、取得發生的函數名稱
-                    errMsg = "File \"{}\", line {}, in {}: [{}] {}".format(fileName, lineNum, funcName, error_class, detail)
+                    errMsg = f"""File:{fileName}, line: {lineNum}, in {funcName}: [{error_class}] {detail}"""
                     print(stockName, errMsg)
     
 #-------------------------------------------------
 
 _start = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-datediff, iYesterday, stockIds, vsql, i = 0 , 1, [], "", 0    #datediff =回推第幾天?
-stockIds = bs.getAllStockIds(pp, False)
+datediff, iYesterday, stockIds, vsql, i = 2 , 1, [], "", 0      #datediff =回推第幾天?
 today, yesterday, whatDay = whatIsToday(datediff, iYesterday)   #今天是什麼日期? 前天交易日?
-print("today:", today,"yesterday:", yesterday, whatDay, "開始", _start)
 
+print(f"today: {today} yesterday: {yesterday} , {whatDay}")
 
+stockIds = bs.getAllStockIds(pp, False)
 findTrendStock(today, yesterday, datediff)
 
 j=0
 for stockId in stockIds:
+
     if(stockId >= "1101" and stockId <="9962" ):
         i+=1
-        if(j < 50):
+        if(j < 30):
             vsql += getStockVolumns(stockId, 0)
             j += 1
-            print(i, stockId)
-        else:
+        
+        if(j ==30):
+            vsql += getStockVolumns(stockId, 0)
             bs.InsertIntoMSSQL2017(vsql)                #一次輸入給SQL新增。更快!! 但是送到遠端SQL會有遺漏?
             j = 0
             vsql = ""
 
-
-
 get_all_max_month_income()
+bs.proc_final_SqlScript(today)
 
-print("today:", today,"yesterday:", yesterday, whatDay)
 print("開始", _start)
 print("結束", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-
-bs.proc_final_SqlScript(today)
 
 # %%
