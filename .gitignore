@@ -26,6 +26,7 @@ bin/
 obj/
 /.vscode/
 history/
+sqlback/
 ############
 # Packages #
 ############
@@ -40,3 +41,5 @@ history/
 *.tar
 *.zip
 *.rptproj.rsuser
+_beowSet.py
+
