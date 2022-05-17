@@ -110,3 +110,23 @@ def proc_final_SqlScript(today):
     
     print(today, "股票資料處理結束", _start, _end)
     ###end
+
+def proc_final_SqlScript2(today):
+    
+    """將每日重複手動執行的sql指令最後自動化完成
+
+    Keyword arguments:
+    Args:
+        today: 今天日期
+    """
+
+    sql="""
+        EXEC dbo.sp_setKbar2 '{0}';
+    """
+    sql = sql.format(today)
+    _start = time.strftime("%H:%M:%S", time.localtime())
+    ExecuteMSSQL(sql)
+    _end = time.strftime("%H:%M:%S", time.localtime())
+    
+    print(today, "股票資料處理結束", _start, _end)
+    ###end

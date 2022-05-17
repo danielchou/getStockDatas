@@ -105,7 +105,19 @@ def fmtSql_Volumn(r):
 def fmtSQL_maxMMRevenue(r):
     stockId, nowDate, nowRvn, lastMaxDt, lastMaxV = r["stockId"], r["nowDt"], r["now"], r["max2Dt"], r["max2"]
 
-    return f"""declare @isExist as int; select @isExist = count(*) from maxMMRevenue where stockId={stockId} and nowDate='{nowDate}';
-    if @isExist = 0
+    return f"""if (select count(*) from maxMMRevenue where stockId={stockId} and nowDate='{nowDate}') = 0
     begin insert into maxMMRevenue (stockId,nowDate,nowRvn,lastMaxDate,lastMaxRvn,createdDate) values ('{stockId}','{nowDate}',{nowRvn},'{lastMaxDt}',{lastMaxV},getdate());  end
     """
+    
+def fmtSql_capital(r):
+    stockId, cap = r["stockId"], r["cap"]
+    return f"update stock set capital={cap},modifiedDate=getdate() where id='{stockId}'"
+
+import os
+import codecs 
+
+def write_LogFile(fileName, write_content):
+    os.makedirs(os.path.dirname(fileName), exist_ok=True)
+    f = codecs.open(fileName, mode="w", encoding="utf-8", errors="strict")
+    f.write(write_content)
+    f.close()
