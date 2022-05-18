@@ -229,8 +229,8 @@ Max2Dt  = df[:-1].idxmax().dt.strftime("%Y-%m-%d")
 df2 = pd.DataFrame({"stockId":drKeys, "now": Now, "nowDt": NowDt, "max": Max, "maxDt": MaxDt, "max2": Max2, "max2Dt": Max2Dt})
 df2["isHisMax"] = (df2["now"] == df2["max"])
 
-target           = df2[df2["isHisMax"]==True].copy()
-target["sql"]    = target[~target["max2Dt"].isnull()].apply(fm.fmtSQL_maxMMRevenue, axis = 1)
+target           = df2[df2["isHisMax"]==True].copy().dropna()
+target["sql"]    = target.apply(fm.fmtSQL_maxMMRevenue, axis = 1)
 
 sql_maxMonthEarn = "\n".join(target["sql"].tolist())
 fm.write_LogFile(f"sqlback/{today}_monthEarn.sql", sql_maxMonthEarn)
