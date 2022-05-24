@@ -35,16 +35,33 @@ def isCrossMA240(r):
     top, bottom, ma, ytop = r["kbar_top"], r["kbar_bottom"], r["ma240"], r["kbar_top_y"]
     return "C" if ( top >= ma and ma >= bottom) else "J" if(bottom >= ma and ma >= ytop) else ""
     
-# 判斷上下彎勾
-def fmtGetCurvHook(r):
+# 判斷上下彎勾 ####################################################
+def fmtGetCurvHookMa5(r):
     rs, flagN, _n, _y = "", r["crvFlagMa5"], r["sMa5"], r["sMa5y"]
     if (flagN == -1):
         rs = "H" if (_n > _y and _n != _y) else "C"
     return rs
 
-# 判斷上下彎勾
-def fmtGetCurvHookMA10(r):
-    rs, flagN, _n, _y = "", r["crvFlagMa10"], r["sMa10"], r["sMa5y"]
+def fmtGetCurvHookMa10(r):
+    rs, flagN, _n, _y = "", r["crvFlagMa10"], r["sMa10"], r["sMa10y"]
+    if (flagN == -1):
+        rs = "H" if (_n > _y and _n != _y) else "C"
+    return rs
+
+def fmtGetCurvHookMa20(r):
+    rs, flagN, _n, _y = "", r["crvFlagMa20"], r["sMa20"], r["sMa20y"]
+    if (flagN == -1):
+        rs = "H" if (_n > _y and _n != _y) else "C"
+    return rs
+
+def fmtGetCurvHookMa60(r):
+    rs, flagN, _n, _y = "", r["crvFlagMa60"], r["sMa60"], r["sMa60y"]
+    if (flagN == -1):
+        rs = "H" if (_n > _y and _n != _y) else "C"
+    return rs
+
+def fmtGetCurvHookMa240(r):
+    rs, flagN, _n, _y = "", r["crvFlagMa240"], r["sMa240"], r["sMa240y"]
     if (flagN == -1):
         rs = "H" if (_n > _y and _n != _y) else "C"
     return rs
@@ -91,9 +108,11 @@ def fmtSql_stockMA(r):
     stockId, today, kbar, ma_dscr           = r["stockId"], r["today"], r["kbar"], r["ma_dscr"]
     ma5, ma7, ma10, ma20, ma60, ma240       = r["ma5"], r["ma7"], r["ma10"], r["ma20"], r["ma60"], r["ma240"]
     maF5, maF10, maF20, maF60, maF240       = r["maF5"], r["maF10"], r["maF20"], r["maF60"], r["maF240"]
+    maS5, maS10, maS20, maS60, maS240       = r["maS5a"], r["maS10a"], r["maS20a"], r["maS60a"], r["maS240a"]   #計算斜率
     d_ma5, d_ma10, d_ma20, d_ma60, d_ma240  = r["d_ma5"], r["d_ma10"], r["d_ma20"], r["d_ma60"], r["d_ma240"]
+    
     #insert into dbo.StockMA (stockId, closeDate,kbar,ma_dscr, ma5, ma7, ma10, ma20, ma60, ma240, d_ma5, d_ma10, d_ma20, d_ma60, d_ma240, maF5, maF10, maF20, maF60, maF240) values 
-    sql = f"""({stockId},'{today}','{kbar}','{ma_dscr}',{ma5},{ma7},{ma10},{ma20},{ma60},{ma240},'{d_ma5}','{d_ma10}','{d_ma20}','{d_ma60}','{d_ma240}','{maF5}','{maF10}','{maF20}','{maF60}','{maF240}') """
+    sql = f"""({stockId},'{today}','{kbar}','{ma_dscr}',{ma5},{ma7},{ma10},{ma20},{ma60},{ma240},'{d_ma5}','{d_ma10}','{d_ma20}','{d_ma60}','{d_ma240}','{maF5}','{maF10}','{maF20}','{maF60}','{maF240}',{maS5},{maS10},{maS20},{maS60},{maS240}) """
     return sql
 
 def fmtSql_Volumn(r):

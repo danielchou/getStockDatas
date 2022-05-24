@@ -64,34 +64,40 @@ def genInsertStockParasSQL(stockId):
     dff["d_ma240"]      = dff.apply(fm.isCrossMA240,  axis = 1)
 
     dff["sMa5"]         = dff["ma5"] - dff["ma5"].shift(1, axis =0)
+    dff["sMa5a"]        = round(dff["sMa5"] / dff["ma5"].shift(1, axis =0) * 100, 2)
     dff["sMa5"]         = dff["sMa5"].apply(lambda x: 1 if (x > 0 ) else -1)
     dff["sMa5y"]        = dff["sMa5"].shift(1, axis =0)
     dff["crvFlagMa5"]   = dff["sMa5"] * dff["sMa5"].shift(1, axis = 0)
-    dff["maF5"]         = dff.apply(fm.fmtGetCurvHook, axis = 1)
+    dff["maF5"]         = dff.apply(fm.fmtGetCurvHookMa5, axis = 1)
 
     dff["sMa10"]         = dff["ma10"] - dff["ma10"].shift(1, axis =0)
+    dff["sMa10a"]        = round(dff["sMa10"] / dff["ma10"].shift(1, axis =0) * 100, 2)
     dff["sMa10"]         = dff["sMa10"].apply(lambda x: 1 if (x > 0 ) else -1)
     dff["sMa10y"]        = dff["sMa10"].shift(1, axis =0)
     dff["crvFlagMa10"]   = dff["sMa10"] * dff["sMa10"].shift(1, axis = 0)
-    dff["maF10"]         = dff.apply(fm.fmtGetCurvHook, axis = 1)
+    dff["maF10"]         = dff.apply(fm.fmtGetCurvHookMa10, axis = 1)
 
     dff["sMa20"]         = dff["ma20"] - dff["ma20"].shift(1, axis =0)
-    dff["sMa20"]         = dff["sMa20"].apply(lambda x: 1 if (x > 0 ) else -1)
+    dff["sMa20a"]        = round(dff["sMa20"] / dff["ma20"].shift(1, axis =0) * 100, 2)
+    dff["sMa20"]         = dff["sMa20a"].apply(lambda x: 1 if (x > 0 ) else -1)
     dff["sMa20y"]        = dff["sMa20"].shift(1, axis =0)
     dff["crvFlagMa20"]   = dff["sMa20"] * dff["sMa20"].shift(1, axis = 0)
-    dff["maF20"]         = dff.apply(fm.fmtGetCurvHook, axis = 1)
+    dff["maF20"]         = dff.apply(fm.fmtGetCurvHookMa20, axis = 1)
 
     dff["sMa60"]         = dff["ma60"] - dff["ma60"].shift(1, axis =0)
+    dff["sMa60a"]        = round(dff["sMa60"] / dff["ma60"].shift(1, axis =0) * 100, 2)
     dff["sMa60"]         = dff["sMa60"].apply(lambda x: 1 if (x > 0 ) else -1)
     dff["sMa60y"]        = dff["sMa60"].shift(1, axis =0)
     dff["crvFlagMa60"]   = dff["sMa60"] * dff["sMa60"].shift(1, axis = 0)
-    dff["maF60"]         = dff.apply(fm.fmtGetCurvHook, axis = 1)
+    dff["maF60"]         = dff.apply(fm.fmtGetCurvHookMa60, axis = 1)
 
     dff["sMa240"]        = dff["ma240"] - dff["ma240"].shift(1, axis =0)
+    dff["sMa240a"]        = round(dff["sMa240"] / dff["ma240"].shift(1, axis =0) * 100, 2)
     dff["sMa240"]        = dff["sMa240"].apply(lambda x: 1 if (x > 0 ) else -1)
     dff["sMa240y"]       = dff["sMa240"].shift(1, axis =0)
     dff["crvFlagMa240"]  = dff["sMa240"] * dff["sMa240"].shift(1, axis = 0)
-    dff["maF240"]        = dff.apply(fm.fmtGetCurvHook, axis = 1)
+    dff["maF240"]        = dff.apply(fm.fmtGetCurvHookMa240, axis = 1)
+
 
     # 改善dtypes來提升效能
     dff = dff.astype({"kbar":"category","ma_dscr":"category","d_ma5":"category","d_ma5":"category","d_ma10":"category","d_ma20":"category","d_ma60":"category","d_ma240":"category","maF5":"category","maF10":"category","maF20":"category","maF60":"category","maF240":"category"})
@@ -145,7 +151,7 @@ for stockId in stockIds:
         
         if (i % 50 == 0):
             sql_Paras = "insert into dbo.StockParas (stockId, closeDate,kbar, v, o, c, h, l, yc, head, body, footer, iGap,amplitude,k,d) values " + "\n,".join(arr)
-            sql_MA    = "insert into dbo.StockMA (stockId, closeDate,kbar,ma_dscr, ma5, ma7, ma10, ma20, ma60, ma240, d_ma5, d_ma10, d_ma20, d_ma60, d_ma240, maF5, maF10, maF20, maF60, maF240) values " + "\n,".join(brr)
+            sql_MA    = "insert into dbo.StockMA (stockId, closeDate,kbar,ma_dscr, ma5, ma7, ma10, ma20, ma60, ma240, d_ma5, d_ma10, d_ma20, d_ma60, d_ma240, maF5, maF10, maF20, maF60, maF240, maS5, maS10, maS20, maS60, maS240) values " + "\n,".join(brr)
             sql = sql_Paras +"\n"+ sql_MA
             print(i)
             sqlkeep += sql
@@ -154,7 +160,7 @@ for stockId in stockIds:
 
 
 sql_Paras = "insert into dbo.StockParas (stockId, closeDate,kbar, v, o, c, h, l, yc, head, body, footer, iGap,amplitude,k,d) values " + "\n,".join(arr)
-sql_MA    = "insert into dbo.StockMA (stockId, closeDate,kbar,ma_dscr, ma5, ma7, ma10, ma20, ma60, ma240, d_ma5, d_ma10, d_ma20, d_ma60, d_ma240, maF5, maF10, maF20, maF60, maF240) values " + "\n,".join(brr)
+sql_MA    = "insert into dbo.StockMA (stockId, closeDate,kbar,ma_dscr, ma5, ma7, ma10, ma20, ma60, ma240, d_ma5, d_ma10, d_ma20, d_ma60, d_ma240, maF5, maF10, maF20, maF60, maF240, maS5, maS10, maS20, maS60, maS240) values " + "\n,".join(brr)
 sql = sql_Paras +"\n"+ sql_MA
 print(i)
 sqlkeep += sql
